@@ -136,7 +136,7 @@ const TableViewer = () => {
 
   return (
     <div className="bg-white shadow-md rounded-lg p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-6 bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
+      <h1 className="text-2xl font-semibold mb-6 bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">
         Visualização de Dados
       </h1>
       

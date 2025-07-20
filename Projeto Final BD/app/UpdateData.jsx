@@ -170,7 +170,7 @@ const UpdateData = () => {
         richColors
       />
       
-      <h1 className="text-2xl font-semibold mb-6 bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
+      <h1 className="text-2xl font-semibold mb-6 bg-gradient-to-r from-purple-600 to-purple-600 bg-clip-text text-transparent">
         Atualização de Dados
       </h1>
 
