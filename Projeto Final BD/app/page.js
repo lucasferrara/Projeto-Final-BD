@@ -9,7 +9,7 @@ const MainPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex flex-col">
       <div className="max-w-5xl mx-auto w-full flex-grow px-4 py-8">
         <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-emerald-100">
-          <div className="bg-gradient-to-r from-blue-700 to-purple-700 text-white p-6 flex items-center space-x-4 shadow-md">
+          <div className="bg-gradient-to-r from-green-700 to-green-700 text-white p-6 flex items-center space-x-4 shadow-md">
             <DatabaseIcon className="w-10 h-10 text-white" />
             <h1 className="text-3xl font-extrabold tracking-tight">Gerenciamento de Dados de Eventos</h1>
           </div>
@@ -67,8 +67,8 @@ const MainPage = () => {
             />
           </div>
           <div>
-            <div>Projeto Final de Banco de Dados - Profa. Dra. Daniela Leal Musa</div>
-            <div>Grupo: Lucas Ferrara, Shogo Miyazaki, Nicolas Pereira e Estevan Teixeira</div>
+            <div>Projeto Final de Aspecto de implementação de Banco de Dados - Profa. Dra. Daniela Leal Musa</div>
+            <div>Grupo: Lucas Ferrara, Shogo Miyazaki, Eduardo Lopes</div>
           </div>
         </div>
       </footer>
