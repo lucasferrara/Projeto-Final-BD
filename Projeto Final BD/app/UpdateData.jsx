@@ -1,8 +1,8 @@
 'use client'
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { TableIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, ChevronDownIcon, SearchIcon } from "lucide-react"
+import { TableIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon } from "lucide-react"
 import { Toaster, toast } from "sonner"
 import {
   Select,
@@ -20,49 +20,63 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+const ENTITY_SCHEMAS = {
+  eventos: [
+    '_id', 'tipo', 'nome', 'local', 'descricao', 'data_inicio', 'data_fim', 'participantes', 'organizadores', 'apresentacoes'
+  ],
+  participantes: [
+    '_id', 'tipo', 'email', 'instituicao', 'nome', 'categoria', 'semestre', 'curso', 'areas_de_pesquisa', 'titulos_academicos', 'eventos_participados', 'artigos_publicados'
+  ],
+  organizadores: [
+    '_id', 'tipo', 'instituicao', 'nome', 'contato', 'eventos_organizados'
+  ],
+  revistas: [
+    '_id', 'tipo', 'nome', 'editora', 'issn', 'artigos_publicados'
+  ],
+  artigos: [
+    '_id', 'tipo', 'titulo', 'resumo', 'data_publicacao', 'revista', 'autores', 'areas_cientificas', 'apresentacoes'
+  ],
+  areas_cientificas: [
+    '_id', 'tipo', 'nome', 'descricao', 'artigos'
+  ]
+}
+
+const ENTITY_LABELS = {
+  eventos: 'Eventos',
+  participantes: 'Participantes',
+  organizadores: 'Organizadores',
+  revistas: 'Revistas',
+  artigos: 'Artigos',
+  areas_cientificas: 'Áreas Científicas'
+}
+
 const UpdateData = () => {
-  const [tables, setTables] = useState([])
-  const [selectedTable, setSelectedTable] = useState("")
+  const [selectedEntity, setSelectedEntity] = useState("")
   const [records, setRecords] = useState([])
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [formData, setFormData] = useState({})
-  const [columns, setColumns] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const recordsPerPage = 5 
   const [searchColumn, setSearchColumn] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
-  const [sortConfig, setSortConfig] = useState({ column: "", direction: "" })
 
-  useEffect(() => {
-    fetchTables()
-  }, [])
-
-  const fetchTables = async () => {
+  const fetchEntityData = async (entity) => {
     try {
-      const response = await fetch("http://127.0.0.1:5000/tables")
+      const response = await fetch(`http://localhost:5000/${entity}`)
       const data = await response.json()
-      setTables(data)
+      setRecords(data)
     } catch (error) {
-      console.error("Error fetching tables:", error)
+      toast.error("Erro ao buscar dados da entidade")
+      setRecords([])
     }
   }
 
-  const fetchTableData = async (tableName) => {
-    try {
-      const response = await fetch(`http://127.0.0.1:5000/table/${tableName}`)
-      const data = await response.json()
-      setRecords(data.rows)
-      setColumns(data.columns)
-    } catch (error) {
-      console.error("Error fetching table data:", error)
-    }
-  }
-
-  const handleTableSelect = (tableName) => {
-    setSelectedTable(tableName)
+  const handleEntitySelect = (entity) => {
+    setSelectedEntity(entity)
     setSelectedRecord(null)
     setFormData({})
-    fetchTableData(tableName)
+    setCurrentPage(1)
+    fetchEntityData(entity)
   }
 
   const handleRecordSelect = (record) => {
@@ -79,86 +93,53 @@ const UpdateData = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    // Show loading toast
     const loadingToast = toast.loading('Atualizando registro...')
-    
     try {
-      const primaryKey = columns[0]
-      const recordId = selectedRecord[primaryKey]
-      
-      const response = await fetch(`http://127.0.0.1:5000/table/${selectedTable}/update/${recordId}`, {
+      const recordId = selectedRecord['_id']
+      const response = await fetch(`http://localhost:5000/${selectedEntity}/${recordId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       })
-
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Falha ao atualizar dados')
       }
-
-      // Dismiss loading toast and show success
       toast.dismiss(loadingToast)
       toast.success('Registro atualizado com sucesso!', {
         duration: 3000,
         position: 'top-center',
       })
-      
-      fetchTableData(selectedTable)
+      fetchEntityData(selectedEntity)
       setSelectedRecord(null)
       setFormData({})
     } catch (error) {
-      // Dismiss loading toast and show error
       toast.dismiss(loadingToast)
       toast.error(`Erro ao atualizar: ${error.message}`, {
         duration: 4000,
         position: 'top-center',
       })
-      console.error("Error updating data:", error)
     }
   }
 
   // Filter and sort records
-  const filteredAndSortedRecords = records
-    .filter(record => {
-      if (!searchQuery || !searchColumn) return true
-      const value = String(record[searchColumn]).toLowerCase()
-      return value.includes(searchQuery.toLowerCase())
-    })
-    .sort((a, b) => {
-      if (!sortConfig.column) return 0
-      
-      const aValue = a[sortConfig.column]
-      const bValue = b[sortConfig.column]
-      
-      if (aValue === bValue) return 0
-      
-      const direction = sortConfig.direction === "asc" ? 1 : -1
-      return aValue > bValue ? direction : -direction
-    })
+  const filteredRecords = records.filter(record => {
+    if (!searchQuery || !searchColumn) return true
+    const value = String(record[searchColumn] || '').toLowerCase()
+    return value.includes(searchQuery.toLowerCase())
+  })
 
-  // Handle sort
-  const handleSort = (column) => {
-    setSortConfig(current => ({
-      column,
-      direction: 
-        current.column === column && current.direction === "asc" 
-          ? "desc" 
-          : "asc"
-    }))
-  }
-
-  // Calculate pagination with filtered records
   const indexOfLastRecord = currentPage * recordsPerPage
   const indexOfFirstRecord = indexOfLastRecord - recordsPerPage
-  const currentRecords = filteredAndSortedRecords.slice(indexOfFirstRecord, indexOfLastRecord)
-  const totalPages = Math.max(1, Math.ceil(filteredAndSortedRecords.length / recordsPerPage))
+  const currentRecords = filteredRecords.slice(indexOfFirstRecord, indexOfLastRecord)
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / recordsPerPage))
 
-  const formatCellValue = (value, column) => {
+  const formatCellValue = (value) => {
     if (value === null || value === undefined) return ''
+    if (Array.isArray(value)) return JSON.stringify(value)
+    if (typeof value === 'object') return JSON.stringify(value)
     return value
   }
 
@@ -169,42 +150,38 @@ const UpdateData = () => {
         closeButton
         richColors
       />
-      
       <h1 className="text-2xl font-semibold mb-6 bg-gradient-to-r from-purple-600 to-purple-600 bg-clip-text text-transparent">
         Atualização de Dados
       </h1>
-
       <h2 className="text-lg font-medium text-gray-700 mb-4">
-        Selecione uma tabela
+        Selecione uma entidade
       </h2>
-
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-6">
-        {tables.map((table) => (
+        {Object.keys(ENTITY_LABELS).map((entity) => (
           <div
-            key={table.name}
+            key={entity}
             className={`rounded-md ${
-              selectedTable === table.name 
+              selectedEntity === entity 
                 ? "p-[1px] bg-gradient-to-r from-blue-700 to-purple-700" 
                 : ""
             }`}
           >
             <Button
-              onClick={() => handleTableSelect(table.name)}
+              onClick={() => handleEntitySelect(entity)}
               variant="outline"
               className={`w-full justify-start ${
-                selectedTable === table.name 
+                selectedEntity === entity 
                   ? "border-0 bg-white hover:bg-blue-50" 
                   : "text-gray-700 hover:bg-gray-50 border-gray-200"
               }`}
             >
               <TableIcon className="mr-2 h-4 w-4" />
-              {table.name}
+              {ENTITY_LABELS[entity]}
             </Button>
           </div>
         ))}
       </div>
-
-      {selectedTable && records.length > 0 && (
+      {selectedEntity && records.length > 0 && (
         <>
           <div className="flex gap-4 mb-4">
             <Select
@@ -215,14 +192,13 @@ const UpdateData = () => {
                 <SelectValue placeholder="Selecione a coluna" />
               </SelectTrigger>
               <SelectContent>
-                {columns.map(column => (
+                {ENTITY_SCHEMAS[selectedEntity].map(column => (
                   <SelectItem key={column} value={column}>
                     {column}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-
             <div className="flex-1 relative">
               <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
@@ -234,41 +210,17 @@ const UpdateData = () => {
               />
             </div>
           </div>
-
           <div className="relative border rounded-lg overflow-x-auto">
             <div className="w-full">
               <Table>
                 <TableHeader className="bg-blue-700 [&_tr]:hover:bg-transparent">
                   <TableRow>
-                    {columns.map((column, index) => (
+                    {ENTITY_SCHEMAS[selectedEntity].map((column, index) => (
                       <TableHead 
                         key={column} 
-                        className={`text-white font-medium min-w-[200px] cursor-pointer select-none hover:bg-blue-600 transition-colors relative ${
-                          index !== columns.length - 1 ? 'after:content-[""] after:absolute after:right-0 after:top-2 after:bottom-2 after:w-px after:bg-blue-500' : ''
-                        }`}
-                        onClick={() => handleSort(column)}
+                        className={`text-white font-medium min-w-[200px]`}
                       >
-                        <div className="flex items-center justify-between group">
-                          <div className="flex items-center gap-2">
-                            {column}
-                            <div className="flex flex-col">
-                              <ChevronUpIcon 
-                                className={`h-3 w-3 transition-opacity ${
-                                  sortConfig.column === column && sortConfig.direction === "asc"
-                                    ? "opacity-100"
-                                    : "opacity-40 group-hover:opacity-70"
-                                }`}
-                              />
-                              <ChevronDownIcon 
-                                className={`h-3 w-3 -mt-1 transition-opacity ${
-                                  sortConfig.column === column && sortConfig.direction === "desc"
-                                    ? "opacity-100"
-                                    : "opacity-40 group-hover:opacity-70"
-                                }`}
-                              />
-                            </div>
-                          </div>
-                        </div>
+                        {column}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -276,20 +228,18 @@ const UpdateData = () => {
                 <TableBody>
                   {currentRecords.map((record, rowIndex) => (
                     <TableRow 
-                      key={`${selectedTable}-row-${rowIndex}-${record[columns[0]]}`}
+                      key={`${selectedEntity}-row-${rowIndex}-${record._id}`}
                       onClick={() => handleRecordSelect(record)}
                       className={`cursor-pointer hover:bg-gray-50 transition-colors ${
                         selectedRecord === record ? "bg-blue-50" : ""
                       }`}
                     >
-                      {columns.map((column, colIndex) => (
+                      {ENTITY_SCHEMAS[selectedEntity].map((column, colIndex) => (
                         <TableCell 
-                          key={`${selectedTable}-cell-${rowIndex}-${colIndex}-${record[columns[0]]}`}
-                          className={`min-w-[200px] relative ${
-                            colIndex !== columns.length - 1 ? 'after:content-[""] after:absolute after:right-0 after:top-2 after:bottom-2 after:w-px after:bg-gray-200' : ''
-                          }`}
+                          key={`${selectedEntity}-cell-${rowIndex}-${colIndex}-${record._id}`}
+                          className={`min-w-[200px] relative`}
                         >
-                          {formatCellValue(record[column], column)}
+                          {formatCellValue(record[column])}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -298,8 +248,6 @@ const UpdateData = () => {
               </Table>
             </div>
           </div>
-
-          {/* Pagination Controls */}
           <div className="flex justify-between items-center mt-4 p-2 bg-gray-50 rounded-lg">
             <Button 
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -309,7 +257,7 @@ const UpdateData = () => {
               <ChevronLeftIcon className="mr-2 h-4 w-4" /> Anterior
             </Button>
             <span className="text-sm text-gray-600">
-              Página {currentPage} de {totalPages} ({filteredAndSortedRecords.length} registros)
+              Página {currentPage} de {totalPages} ({filteredRecords.length} registros)
             </span>
             <Button 
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
@@ -319,11 +267,10 @@ const UpdateData = () => {
               Próximo <ChevronRightIcon className="ml-2 h-4 w-4" />
             </Button>
           </div>
-
           {selectedRecord && (
             <form onSubmit={handleSubmit} className="space-y-4 mt-6">
-              {columns.map((column) => (
-                <div key={`${selectedTable}-${column}`} className="space-y-2">
+              {ENTITY_SCHEMAS[selectedEntity].map((column) => (
+                <div key={`${selectedEntity}-${column}`} className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">
                     {column}
                   </label>
@@ -331,7 +278,7 @@ const UpdateData = () => {
                     type="text"
                     value={formData[column] || ""}
                     onChange={(e) => handleInputChange(column, e.target.value)}
-                    disabled={column === columns[0]} // Disable primary key
+                    disabled={column === '_id'} // Disable _id
                     className="w-full"
                   />
                 </div>

@@ -68,7 +68,7 @@ const MainPage = () => {
           </div>
           <div>
             <div>Projeto Final de Aspecto de implementação de Banco de Dados - Profa. Dra. Daniela Leal Musa</div>
-            <div>Grupo: Lucas Ferrara, Shogo Miyazaki, Eduardo</div>
+            <div>Grupo: Lucas Ferrara, Shogo Miyazaki, Eduardo Lopes</div>
           </div>
         </div>
       </footer>
